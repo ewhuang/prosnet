@@ -23,7 +23,7 @@
 #include "ransampl.h"
 
 #define MAX_PATH_LENGTH 100
-#define MEX_EDGE_TYPE_NUM 100
+#define MAX_EDGE_TYPE_NUM 100
 
 char node_file[MAX_STRING], link_file[MAX_STRING], output_file[MAX_STRING],meta_path_file[MAX_STRING],meta_path_head[1000],init_file[MAX_STRING];
 int binary = 0, num_threads = 1, vector_size = 100, negative = 5, iters = 10, epoch, mode = 0, model = 0, depth = 2,meta_path_count = 0;
@@ -37,7 +37,7 @@ int edge_type_num;
 
 line_node node0, node1;
 line_hin hin;
-line_trainer_edge trainer_edge[10];
+line_trainer_edge trainer_edge[30];
 line_trainer_path trainer_path[30];
 
 #define SEED 12345
@@ -90,6 +90,14 @@ void *training_thread(void *id)
             if (alpha < starting_alpha * 0.0001) alpha = starting_alpha * 0.0001;
             error = 0;
         }
+		for (int i=1;i<=20;i++)
+		{
+			for (int j=1;j<=edge_type_num;j++) {
+				//printf("i=%d,j=%d\n",i,j);
+				trainer_edge[j].train_sample(mode, alpha,error_vec, error_p, error_q, func_rand_num, next_random);
+			}
+		}
+		/*
         for (int i=1;i<=edge_type_num;i++)
         {
             if (rwr_ppi==0)
@@ -101,7 +109,7 @@ void *training_thread(void *id)
                 error += trainer_edge[i].train_sample_depth(mode, alpha, depth,error_vec, error_p, error_q, func_rand_num, next_random);
                 error += trainer_edge[i].train_sample_randwalk(mode, alpha, restart,error_vec, error_p, error_q, func_rand_num, next_random);
             }
-        }
+        }*/
         for (int i=0;i<meta_path_count;i++)
         {
             error += trainer_path[i].train_path(mode, node_lst, alpha, error_vec, error_p, error_q, func_rand_num, next_random, model);
@@ -138,9 +146,9 @@ void read_meta_path(char *file_name)
 }
 void write_to_file(int epoch)
 {
-	char new_output_file[MAX_STRING];
+    char new_output_file[MAX_STRING];
     sprintf(new_output_file, "%s_%d", output_file,epoch);
-	printf("%s\n",new_output_file);
+    printf("%s\n",new_output_file);
     node0.output(new_output_file, binary);
     printf("finished\n");
 }
@@ -153,20 +161,20 @@ void TrainModel() {
     fflush(stdout);
     node0.init(node_file, vector_size);
     node1.init(node_file, vector_size);
-	fflush(stdout);
+    fflush(stdout);
     hin.init(link_file, &node0, &node1);
     printf("waht %d\n",edge_type_num);
     for (int i=1;i<=edge_type_num;i++)
     {
-        char edge_tp[MEX_EDGE_TYPE_NUM];
-        printf("%d", i);
+        char edge_tp[MAX_EDGE_TYPE_NUM];
+        printf("%d\n", i);
         sprintf(edge_tp, "%d", i);
         trainer_edge[i].init(edge_tp[0], &hin, negative);
     }
     printf("what2?");
     read_meta_path(meta_path_file);
     printf("what3?");
-	fflush(stdout);
+    fflush(stdout);
     /*
      trainer_edge8.init('8', &hin, negative);
      trainer_edge9.init('9', &hin, negative);
@@ -178,7 +186,7 @@ void TrainModel() {
      trainer_path5.init("H5H", &hin, negative);
      trainer_path6.init("H6H", &hin, negative);
      */
-	 /*
+     /*
     clock_t start = clock();
     printf("Training:");
     if (train_mode == 0)
@@ -192,7 +200,7 @@ void TrainModel() {
             write_to_file(epoch);
         }
     }
-	
+    
     if (train_mode == 1)
     {
         for (epoch = 0; epoch != iters; epoch++)
@@ -213,29 +221,29 @@ void TrainModel() {
             
         }
     }
-	*/
+    */
     if (train_mode == 2)
     {
         for (epoch = 0; epoch != iters; epoch++)
         {
             write_to_file(epoch);
-						printf("what3?");
-	fflush(stdout);
-	
+                        printf("what3?");
+    fflush(stdout);
+    
             edge_count_actual = samples * epoch;
             mode = 0;
             for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
             for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
-						printf("what3?");
-	fflush(stdout);
+                        printf("what3?");
+    fflush(stdout);
             mode = 1;
             for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
             for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
-			printf("what3?");
-	fflush(stdout);
+            printf("what3?");
+    fflush(stdout);
         }
     }
-	/*
+    /*
     if (train_mode == 3)
     {
         for (epoch = 0; epoch != iters/50; epoch++)
@@ -330,7 +338,7 @@ void TrainModel() {
     
     node0.output(output_file, binary);
     printf("here main\n");
-	*/
+    */
 }
 
 int ArgPos(char *str, int argc, char **argv) {
@@ -396,7 +404,7 @@ int main(int argc, char **argv) {
     if ((i = ArgPos((char *)"-edge_type_num", argc, argv)) > 0) edge_type_num = atoi(argv[i + 1]);
     if ((i = ArgPos((char *)"-rwr_ppi", argc, argv)) > 0) rwr_ppi = atoi(argv[i + 1]);
     if ((i = ArgPos((char *)"-rwr_seq", argc, argv)) > 0) rwr_seq = atoi(argv[i + 1]);
-    if ((i = ArgPos((char *)"-train_mode", argc, argv)) > 0) train_mode = atoi(argv[i + 1]);	
+    if ((i = ArgPos((char *)"-train_mode", argc, argv)) > 0) train_mode = atoi(argv[i + 1]);    
     if ((i = ArgPos((char *)"-init_file", argc, argv)) > 0)  strcpy(init_file, argv[i + 1]);
     
     //start_alpha = alpha;

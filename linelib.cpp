@@ -186,16 +186,16 @@ void line_hin::init(char *file_name, line_node *p_u, line_node *p_v)
     fclose(fi);
     
     printf("Reading edges from file: %s, DONE!\n", hin_file);
-	printf("%lld\n",hin_size+1);
+    printf("%lld\n",hin_size+1);
     printf("Edge size: %lld\n", hin_size);
     printf("Edge size: %lld\n", hin_size);
     printf("Edge size: %lld\n", hin_size);
-	printf("%lld\n",hin_size+1);
-	printf("Reading edges from file: %s, DONE!\n", hin_file);
-	printf("123");
-	printf("Reading edges from file: %s, DONE!\n", hin_file);
-	printf("123");
-	printf("123");
+    printf("%lld\n",hin_size+1);
+    printf("Reading edges from file: %s, DONE!\n", hin_file);
+    printf("123");
+    printf("Reading edges from file: %s, DONE!\n", hin_file);
+    printf("123");
+    printf("123");
 }
 
 line_trans::line_trans() : P(NULL, 0), Q(NULL, 0)
