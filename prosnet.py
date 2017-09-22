@@ -3,9 +3,9 @@ import os
 import subprocess
 
 def run_prosnet(num_edge_types):
-    command = ('./embed -node %s -link %s -meta_path %s -output %s -binary 0 -size %d '
-        '-negative 5 -samples 1 -iters %d -threads 24 -model 2 -depth 10 '
-        '-restart 0.8 -edge_type_num %d -train_mode 2' % (args.node_fname,
+    command = ('./embed -node %s -link %s -meta_path %s -output %s -size %d '
+        '-negative 5 -samples 1 -iters %d -threads 24 -depth 10 '
+        '-edge_type_num %d' % (args.node_fname,
             args.edge_fname, args.meta_fname, args.out_fname, args.num_dim,
             args.num_iterations, num_edge_types))
     print command

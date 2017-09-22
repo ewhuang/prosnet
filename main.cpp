@@ -28,10 +28,8 @@
 char node_file[MAX_STRING], link_file[MAX_STRING], output_file[MAX_STRING], meta_path_file[MAX_STRING], meta_path_head[1000], init_file[MAX_STRING];
 int binary = 0, num_threads = 1, vector_size = 100, negative = 5, iters = 10, epoch, mode = 0, model = 0, depth = 2, meta_path_count = 0;
 long long samples = 1, edge_count_actual;
-real alpha = 0.025, starting_alpha, restart = 0.3;
+real alpha = 0.025, starting_alpha;
 real start_alpha;
-int train_mode;
-int rwr_seq, rwr_ppi;
 int edge_type_num;
 
 line_node node0, node1;
@@ -85,7 +83,7 @@ void *training_thread(void *id)
             last_edge_count = edge_count;
             printf("%cEpoch: %d/%d Alpha: %f Progress: %.3lf%% Error: %lf", 13,
                 epoch + 1, iters, alpha, (real)edge_count_actual /
-                (real)(samples + 1) * 100, error);
+                (real)(samples + 1) * 100, log(error));
             fflush(stdout);
             alpha = starting_alpha * (1 - edge_count_actual / (real)(samples * iters+ 1));
             if (alpha < starting_alpha * 0.0001) alpha = starting_alpha * 0.0001;
@@ -94,14 +92,15 @@ void *training_thread(void *id)
         for (int i=1;i<=20;i++)
         {
             for (int j=1;j<=edge_type_num;j++) {
-                //printf("i=%d,j=%d\n",i,j);
-                trainer_edge[j].train_sample(mode, alpha,error_vec, error_p, error_q, func_rand_num, next_random);
+                trainer_edge[j].train_sample(mode, alpha,error_vec, error_p,
+                    error_q, func_rand_num, next_random);
             }
         }
 		for (int j=1;j<=20;j++)
         for (int i=0;i<meta_path_count;i++)
         {
-            error += trainer_path[i].train_path(mode, node_lst, alpha, error_vec, error_p, error_q, func_rand_num, next_random, model);
+            error += trainer_path[i].train_path(mode, node_lst, alpha, error_vec,
+                error_p, error_q, func_rand_num, next_random, model);
         }
         
         edge_count += edge_type_num;
@@ -134,13 +133,13 @@ void read_meta_path(char *file_name)
     fclose(fi);
     
 }
+
 void write_to_file(int epoch)
 {
     char new_output_file[MAX_STRING];
     sprintf(new_output_file, "%s_%d", output_file,epoch);
     printf("%s\n",new_output_file);
     node0.output(new_output_file, binary);
-    printf("finished\n");
 }
 
 char nth_letter(int n)
@@ -153,190 +152,36 @@ void TrainModel() {
     long a;
     pthread_t *pt = (pthread_t *)malloc(num_threads * sizeof(pthread_t));
     starting_alpha = alpha;
-    printf("what1?\n");
-    fflush(stdout);
+
     node0.init(node_file, vector_size);
     node1.init(node_file, vector_size);
-    fflush(stdout);
+
     hin.init(link_file, &node0, &node1);
-    printf("waht %d\n",edge_type_num);
+
     for (int i=1;i<=edge_type_num;i++)
     {
         char edge_tp[MAX_EDGE_TYPE_NUM];
-        printf("%d\n", i);
         sprintf(edge_tp, "%d", i);
         trainer_edge[i].init(nth_letter(i), &hin, negative);
     }
-    printf("what2?");
+
     read_meta_path(meta_path_file);
-    printf("what3?");
-    fflush(stdout);
-    /*
-     trainer_edge8.init('8', &hin, negative);
-     trainer_edge9.init('9', &hin, negative);
-     
-     trainer_path1.init("H1H", &hin, negative);
-     trainer_path2.init("H2H", &hin, negative);
-     trainer_path3.init("H3H", &hin, negative);
-     trainer_path4.init("H4H", &hin, negative);
-     trainer_path5.init("H5H", &hin, negative);
-     trainer_path6.init("H6H", &hin, negative);
-     */
-     /*
-    clock_t start = clock();
-    printf("Training:");
-    if (train_mode == 0)
+
+    for (epoch = 0; epoch != iters; epoch++)
     {
-        for (epoch = 0; epoch != iters; epoch++)
-        {
-            edge_count_actual = samples * epoch;
-            mode = 3;
-            for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
-            for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
+        if (epoch == iters - 1) {
             write_to_file(epoch);
         }
+
+        edge_count_actual = samples * epoch;
+        mode = 0;
+        for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
+        for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
+
+        mode = 1;
+        for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
+        for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
     }
-    
-    if (train_mode == 1)
-    {
-        for (epoch = 0; epoch != iters; epoch++)
-        {
-            write_to_file(epoch);
-            edge_count_actual = samples * epoch;
-            mode = 0;
-            for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
-            for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
-            
-            mode = 1;
-            for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
-            for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
-            mode = 2;
-            for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
-            for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
-            
-            
-        }
-    }
-    */
-    if (train_mode == 2)
-    {
-        for (epoch = 0; epoch != iters; epoch++)
-        {
-            if (epoch == iters - 1) {
-                write_to_file(epoch);
-                printf("what3?");
-                fflush(stdout);
-            }
-    
-            edge_count_actual = samples * epoch;
-            mode = 0;
-            for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
-            for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
-                        printf("what3?");
-    fflush(stdout);
-            mode = 1;
-            for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
-            for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
-            printf("what3?");
-    fflush(stdout);
-        }
-    }
-    /*
-    if (train_mode == 3)
-    {
-        for (epoch = 0; epoch != iters/50; epoch++)
-        {
-            for (int tmp_epoch = 0; tmp_epoch<25;tmp_epoch++)
-            {
-                edge_count_actual = samples * (epoch*25+tmp_epoch);
-                mode = 1;
-                for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
-                for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
-            }
-            
-            for (int tmp_epoch = 0; tmp_epoch<25;tmp_epoch++)
-            {
-                edge_count_actual = samples * (epoch*25+tmp_epoch+25);
-                mode = 2;
-                for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
-                for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
-            }
-            write_to_file(epoch);
-        }
-    }
-    
-    if (train_mode == 4)
-    {
-        for (epoch = 0; epoch != iters/50; epoch++)
-        {
-            for (int tmp_epoch = 0; tmp_epoch<25;tmp_epoch++)
-            {
-                edge_count_actual = samples * (epoch*25+tmp_epoch);
-                mode = 0;
-                for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
-                for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
-            }
-            
-            for (int tmp_epoch = 0; tmp_epoch<25;tmp_epoch++)
-            {
-                edge_count_actual = samples * (epoch*25+tmp_epoch+25);
-                mode = 1;
-                for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
-                for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
-            }
-            write_to_file(epoch);
-        }
-    }
-    if (train_mode == 5)
-    {
-        for (epoch = 0; epoch != iters; epoch++)
-        {
-            edge_count_actual = samples * epoch;
-            mode = 0;
-            for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
-            for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
-            
-            mode = 1;
-            for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
-            for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
-            mode = 2;
-            for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
-            for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
-            mode = 3;
-            for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
-            for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
-            write_to_file(epoch);
-        }
-    }
-    if (train_mode == 6)
-    {
-        for (epoch = 0; epoch != iters/50; epoch++)
-        {
-            for (int tmp_epoch = 0; tmp_epoch<50;tmp_epoch++)
-            {
-                edge_count_actual = samples * (epoch*50+tmp_epoch);
-                mode = 0;
-                for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
-                for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
-                mode = 1;
-                for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
-                for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
-            }
-            
-            mode = 2;
-            for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, training_thread, (void *)a);
-            for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
-            
-            write_to_file(epoch);
-        }
-    }
-    printf("\n");
-    clock_t finish = clock();
-    printf("Total time: %lf\n", (double)(finish - start) / CLOCKS_PER_SEC);
-    
-    node0.output(output_file, binary);
-    printf("here main\n");
-    */
 }
 
 int ArgPos(char *str, int argc, char **argv) {
@@ -365,8 +210,6 @@ int main(int argc, char **argv) {
         printf("\t\tAll meta-paths. One path per line.\n");
         printf("\t-output <int>\n");
         printf("\t\tThe output file.\n");
-        printf("\t-binary <int>\n");
-        printf("\t\tSave the resulting vectors in binary moded; default is 0 (off)\n");
         printf("\t-size <int>\n");
         printf("\t\tSet size of word vectors; default is 100\n");
         printf("\t-negative <int>\n");
@@ -380,7 +223,7 @@ int main(int argc, char **argv) {
         printf("\t-alpha <float>\n");
         printf("\t\tSet the starting learning rate; default is 0.025\n");
         printf("\nExamples:\n");
-        printf("./hin2vec -node node.txt -link link.txt -path path.txt -output vec.emb -binary 1 -size 100 -negative 5 -samples 5 -iters 20 -threads 12\n\n");
+        printf("./hin2vec -node node.txt -link link.txt -path path.txt -output vec.emb -size 100 -negative 5 -samples 5 -iters 20 -threads 12\n\n");
         return 0;
     }
     output_file[0] = 0;
@@ -389,33 +232,17 @@ int main(int argc, char **argv) {
     if ((i = ArgPos((char *)"-meta_path", argc, argv)) > 0) strcpy(meta_path_file, argv[i + 1]);
     if ((i = ArgPos((char *)"-link", argc, argv)) > 0) strcpy(link_file, argv[i + 1]);
     if ((i = ArgPos((char *)"-output", argc, argv)) > 0) strcpy(output_file, argv[i + 1]);
-    if ((i = ArgPos((char *)"-binary", argc, argv)) > 0) binary = atoi(argv[i + 1]);
     if ((i = ArgPos((char *)"-size", argc, argv)) > 0) vector_size = atoi(argv[i + 1]);
     if ((i = ArgPos((char *)"-model", argc, argv)) > 0) model = atoi(argv[i + 1]);
     if ((i = ArgPos((char *)"-negative", argc, argv)) > 0) negative = atoi(argv[i + 1]);
     if ((i = ArgPos((char *)"-samples", argc, argv)) > 0) samples = (long long)(atof(argv[i + 1])*1000000);
     if ((i = ArgPos((char *)"-iters", argc, argv)) > 0) iters = atoi(argv[i + 1]);
     if ((i = ArgPos((char *)"-depth", argc, argv)) > 0) depth = atoi(argv[i + 1]);
-    if ((i = ArgPos((char *)"-restart", argc, argv)) > 0) restart = atof(argv[i + 1]);
     if ((i = ArgPos((char *)"-alpha", argc, argv)) > 0) alpha = atof(argv[i + 1]);
     if ((i = ArgPos((char *)"-threads", argc, argv)) > 0) num_threads = atoi(argv[i + 1]);
     if ((i = ArgPos((char *)"-edge_type_num", argc, argv)) > 0) edge_type_num = atoi(argv[i + 1]);
-    if ((i = ArgPos((char *)"-rwr_ppi", argc, argv)) > 0) rwr_ppi = atoi(argv[i + 1]);
-    if ((i = ArgPos((char *)"-rwr_seq", argc, argv)) > 0) rwr_seq = atoi(argv[i + 1]);
-    if ((i = ArgPos((char *)"-train_mode", argc, argv)) > 0) train_mode = atoi(argv[i + 1]);    
     if ((i = ArgPos((char *)"-init_file", argc, argv)) > 0)  strcpy(init_file, argv[i + 1]);
     
-    //start_alpha = alpha;
-    //printf("edge_type_num=%d,mode=%d\n",edge_type_num,train_mode);
-    /*
-     string out_f(output_file);
-     string tab = "_";
-     out_f = out_f + tab+ out_dim + tab+out_dep+tab+sout_res;
-     output_file = out_f.c_str();
-     */
-    
-    
     TrainModel();
-    printf("sfs\n");
     return 0;
 }
