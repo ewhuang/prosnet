@@ -25,14 +25,13 @@
 #define MAX_PATH_LENGTH 100
 #define MAX_EDGE_TYPE_NUM 100
 
-char node_file[MAX_STRING], link_file[MAX_STRING], output_file[MAX_STRING],meta_path_file[MAX_STRING],meta_path_head[1000],init_file[MAX_STRING];
-int binary = 0, num_threads = 1, vector_size = 100, negative = 5, iters = 10, epoch, mode = 0, model = 0, depth = 2,meta_path_count = 0;
+char node_file[MAX_STRING], link_file[MAX_STRING], output_file[MAX_STRING], meta_path_file[MAX_STRING], meta_path_head[1000], init_file[MAX_STRING];
+int binary = 0, num_threads = 1, vector_size = 100, negative = 5, iters = 10, epoch, mode = 0, model = 0, depth = 2, meta_path_count = 0;
 long long samples = 1, edge_count_actual;
 real alpha = 0.025, starting_alpha, restart = 0.3;
 real start_alpha;
 int train_mode;
-int rwr_seq,rwr_ppi;
-
+int rwr_seq, rwr_ppi;
 int edge_type_num;
 
 line_node node0, node1;
@@ -84,32 +83,22 @@ void *training_thread(void *id)
             // if error does not decrease, then decease the learning rate alpha.
             edge_count_actual += edge_count - last_edge_count;
             last_edge_count = edge_count;
-            printf("%cEpoch: %d/%d Alpha: %f Progress: %.3lf%% Error: %lf", 13, epoch + 1, iters, alpha, (real)edge_count_actual / (real)(samples + 1) * 100, error);
+            printf("%cEpoch: %d/%d Alpha: %f Progress: %.3lf%% Error: %lf", 13,
+                epoch + 1, iters, alpha, (real)edge_count_actual /
+                (real)(samples + 1) * 100, error);
             fflush(stdout);
             alpha = starting_alpha * (1 - edge_count_actual / (real)(samples * iters+ 1));
             if (alpha < starting_alpha * 0.0001) alpha = starting_alpha * 0.0001;
             error = 0;
         }
-		for (int i=1;i<=20;i++)
-		{
-			for (int j=1;j<=edge_type_num;j++) {
-				//printf("i=%d,j=%d\n",i,j);
-				trainer_edge[j].train_sample(mode, alpha,error_vec, error_p, error_q, func_rand_num, next_random);
-			}
-		}
-		/*
-        for (int i=1;i<=edge_type_num;i++)
+        for (int i=1;i<=20;i++)
         {
-            if (rwr_ppi==0)
-            {
-                error += trainer_edge[i].train_sample(mode, alpha,error_vec, error_p, error_q, func_rand_num, next_random);
+            for (int j=1;j<=edge_type_num;j++) {
+                //printf("i=%d,j=%d\n",i,j);
+                trainer_edge[j].train_sample(mode, alpha,error_vec, error_p, error_q, func_rand_num, next_random);
             }
-            else
-            {
-                error += trainer_edge[i].train_sample_depth(mode, alpha, depth,error_vec, error_p, error_q, func_rand_num, next_random);
-                error += trainer_edge[i].train_sample_randwalk(mode, alpha, restart,error_vec, error_p, error_q, func_rand_num, next_random);
-            }
-        }*/
+        }
+		for (int j=1;j<=20;j++)
         for (int i=0;i<meta_path_count;i++)
         {
             error += trainer_path[i].train_path(mode, node_lst, alpha, error_vec, error_p, error_q, func_rand_num, next_random, model);
@@ -123,6 +112,7 @@ void *training_thread(void *id)
     free(error_q);
     pthread_exit(NULL);
 }
+
 void read_meta_path(char *file_name)
 {
     FILE *fi = fopen(file_name, "rb");
@@ -153,6 +143,12 @@ void write_to_file(int epoch)
     printf("finished\n");
 }
 
+char nth_letter(int n)
+{
+    assert(n >= 1 && n <= 26);
+    return "abcdefghijklmnopqrstuvwxyz"[n-1];
+}
+
 void TrainModel() {
     long a;
     pthread_t *pt = (pthread_t *)malloc(num_threads * sizeof(pthread_t));
@@ -169,7 +165,7 @@ void TrainModel() {
         char edge_tp[MAX_EDGE_TYPE_NUM];
         printf("%d\n", i);
         sprintf(edge_tp, "%d", i);
-        trainer_edge[i].init(edge_tp[0], &hin, negative);
+        trainer_edge[i].init(nth_letter(i), &hin, negative);
     }
     printf("what2?");
     read_meta_path(meta_path_file);
@@ -226,9 +222,11 @@ void TrainModel() {
     {
         for (epoch = 0; epoch != iters; epoch++)
         {
-            write_to_file(epoch);
-                        printf("what3?");
-    fflush(stdout);
+            if (epoch == iters - 1) {
+                write_to_file(epoch);
+                printf("what3?");
+                fflush(stdout);
+            }
     
             edge_count_actual = samples * epoch;
             mode = 0;
