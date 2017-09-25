@@ -92,7 +92,7 @@ void *training_thread(void *id)
         for (int i=1;i<=20;i++)
         {
             for (int j=1;j<=edge_type_num;j++) {
-                trainer_edge[j].train_sample(mode, alpha,error_vec, error_p,
+                error += trainer_edge[j].train_sample(mode, alpha,error_vec, error_p,
                     error_q, func_rand_num, next_random);
             }
         }
