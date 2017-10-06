@@ -1,5 +1,5 @@
-# prosnet
-ProSNet embedding algorithm.
+# ProSNet
+ProSNet heterogenous network embedding algorithm.
 
 ### Running ProSNet.
 
